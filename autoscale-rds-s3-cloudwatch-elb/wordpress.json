@@ -190,7 +190,7 @@
 				}, {
 					"FromPort": 80,
 					"IpProtocol": "tcp",
-					"SourceSecurityGroupId": {"Ref": "LoadBalancerSecurityGroup"}
+					"SourceSecurityGroupId": {"Ref": "LoadBalancerSecurityGroup"},
 					"ToPort": 80
 				}]
 			}
@@ -420,12 +420,3 @@
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
