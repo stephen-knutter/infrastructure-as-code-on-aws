@@ -1,6 +1,5 @@
 {
-
-	"AWSTemplateFormatVersion": "2010-09-09",
+  "AWSTemplateFormatVersion": "2010-09-09",
 	"Description": "Node.js server",
 	"Parameters": {
 		"KeyName": {
@@ -9,7 +8,7 @@
 			"Default": "mykey"
 		}
 	},
-	"Mappings": {
+  "Mappings": {
 		"EC2RegionMap": {
 			"ap-northeast-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-cbf90ecb", "AmazonLinuxNATAMIHVMEBSBacked64bit": "ami-03cf3903"},
 			"ap-southeast-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-68d8e93a", "AmazonLinuxNATAMIHVMEBSBacked64bit": "ami-b49dace6"},
@@ -22,15 +21,15 @@
 			"us-west-2": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-e7527ed7", "AmazonLinuxNATAMIHVMEBSBacked64bit": "ami-69ae8259"}
 		}
 	},
-	"Resources": {
-		"SecurityGroup": {
+  "Resources": {
+    "SecurityGroup": {
 			"Type": "AWS::EC2::SecurityGroup",
 			"Properties": {
 				"GroupDescription": "My security group",
 				"VpcId": {"Ref": "VPC"}
 			}
 		},
-		"SecurityGroupIngress": {
+    "SecurityGroupIngress": {
 			"Type": "AWS::EC2::SecurityGroupIngress",
 			"Properties":{
 				"IpProtocol": "-1",
@@ -40,7 +39,7 @@
 				"GroupId": {"Ref": "SecurityGroup"}
 			}
 		},
-		"SecurityGroupEgress": {
+    "SecurityGroupEgress": {
 			"Type": "AWS::EC2::SecurityGroupEgress",
 			"Properties":{
 				"IpProtocol": "-1",
@@ -50,26 +49,34 @@
 				"GroupId": {"Ref": "SecurityGroup"}
 			}
 		},
-		"VPC": {
+    "VPC": {
 			"Type": "AWS::EC2::VPC",
 			"Properties": {
 				"CidrBlock": "10.0.0.0/16",
 				"EnableDnsHostnames": "true"
 			}
 		},
-		"InternetGateway": {
+    "InternetGateway": {
 			"Type": "AWS::EC2::InternetGateway",
 			"Properties": {
 			}
 		},
-		"VPCGatewayAttachment": {
+    "VPCGatewayAttachment": {
 			"Type": "AWS::EC2::VPCGatewayAttachment",
 			"Properties": {
 				"VpcId": {"Ref": "VPC"},
 				"InternetGatewayId": {"Ref": "InternetGateway"}
 			}
 		},
-		"SubnetPublicNode": {
+    "SubnetPublicNodeApp": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": {"Fn::Select": ["0", {"Fn::GetAZs": ""}]},
+				"CidrBlock": "10.0.1.0/24",
+				"VpcId": {"Ref": "VPC"}
+			}
+		},
+    "SubnetPublicNodeApi": {
 			"Type": "AWS::EC2::Subnet",
 			"Properties": {
 				"AvailabilityZone": {"Fn::Select": ["0", {"Fn::GetAZs": ""}]},
@@ -77,20 +84,27 @@
 				"VpcId": {"Ref": "VPC"}
 			}
 		},
-		"RouteTablePublicNode": {
+    "RouteTablePublicNode": {
 			"Type": "AWS::EC2::RouteTable",
 			"Properties": {
 				"VpcId": {"Ref": "VPC"}
 			}
 		},
-		"RouteTableAssociationPublicNode": {
+    "RouteTableAssociationPublicNodeApp": {
 			"Type": "AWS::EC2::SubnetRouteTableAssociation",
 			"Properties": {
-				"SubnetId": {"Ref": "SubnetPublicNode"},
+				"SubnetId": {"Ref": "SubnetPublicNodeApp"},
 				"RouteTableId": {"Ref": "RouteTablePublicNode"}
 			}
 		},
-		"RoutePublicNodeToInternet": {
+    "RouteTableAssociationPublicNodeApi": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {"Ref": "SubnetPublicNodeApi"},
+				"RouteTableId": {"Ref": "RouteTablePublicNode"}
+			}
+		},
+    "RoutePublicNodeToInternet": {
 			"Type": "AWS::EC2::Route",
 			"Properties": {
 				"RouteTableId": {"Ref": "RouteTablePublicNode"},
@@ -99,20 +113,27 @@
 			},
 			"DependsOn": "VPCGatewayAttachment"
 		},
-		"NetworkAclPublicNode": {
+    "NetworkAclPublicNode": {
 			"Type": "AWS::EC2::NetworkAcl",
 			"Properties": {
 				"VpcId": {"Ref": "VPC"}
 			}
 		},
-		"SubnetNetworkAclAssociationPublicNode": {
+    "SubnetNetworkAclAssociationPublicNodeApp": {
 			"Type": "AWS::EC2::SubnetNetworkAclAssociation",
 			"Properties": {
-				"SubnetId": {"Ref": "SubnetPublicNode"},
+				"SubnetId": {"Ref": "SubnetPublicNodeApp"},
 				"NetworkAclId": {"Ref": "NetworkAclPublicNode"}
 			}
 		},
-		"NetworkAclEntryInPublicNodeSSH": {
+    "SubnetNetworkAclAssociationPublicNodeApi": {
+			"Type": "AWS::EC2::SubnetNetworkAclAssociation",
+			"Properties": {
+				"SubnetId": {"Ref": "SubnetPublicNodeApi"},
+				"NetworkAclId": {"Ref": "NetworkAclPublicNode"}
+			}
+		},
+    "NetworkAclEntryInPublicNodeSSH": {
 			"Type": "AWS::EC2::NetworkAclEntry",
 			"Properties": {
 				"NetworkAclId": {"Ref": "NetworkAclPublicNode"},
@@ -127,7 +148,7 @@
 				"CidrBlock": "0.0.0.0/0"
 			}
 		},
-		"NetworkAclEntryInPublicNodeHTTP": {
+    "NetworkAclEntryInPublicNodeHTTP": {
 			"Type": "AWS::EC2::NetworkAclEntry",
 			"Properties": {
 				"NetworkAclId": {"Ref": "NetworkAclPublicNode"},
@@ -142,7 +163,22 @@
 				"CidrBlock": "0.0.0.0/0"
 			}
 		},
-		"NetworkAclEntryInPublicNodeEphemeralPorts": {
+    "NetworkAclEntryInPublicNodeHTTPS": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {"Ref": "NetworkAclPublicNode"},
+				"RuleNumber": "120",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "443",
+					"To": "443"
+				},
+				"RuleAction": "allow",
+				"Egress": "false",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+    "NetworkAclEntryInPublicNodeEphemeralPorts": {
 			"Type": "AWS::EC2::NetworkAclEntry",
 			"Properties": {
 				"NetworkAclId": {"Ref": "NetworkAclPublicNode"},
@@ -157,11 +193,11 @@
 				"CidrBlock": "0.0.0.0/0"
 			}
 		},
-		"NetworkAclEntryOutPublicNodeHTTP": {
+    "NetworkAclEntryOutPublicNodeHTTP": {
 			"Type": "AWS::EC2::NetworkAclEntry",
 			"Properties": {
 				"NetworkAclId": {"Ref": "NetworkAclPublicNode"},
-				"RuleNumber": "100",
+				"RuleNumber": "110",
 				"Protocol": "6",
 				"PortRange": {
 					"From": "80",
@@ -172,11 +208,11 @@
 				"CidrBlock": "0.0.0.0/0"
 			}
 		},
-		"NetworkAclEntryOutPublicNodeHTTPS": {
+    "NetworkAclEntryOutPublicNodeHTTPS": {
 			"Type": "AWS::EC2::NetworkAclEntry",
 			"Properties": {
 				"NetworkAclId": {"Ref": "NetworkAclPublicNode"},
-				"RuleNumber": "110",
+				"RuleNumber": "120",
 				"Protocol": "6",
 				"PortRange": {
 					"From": "443",
@@ -187,7 +223,7 @@
 				"CidrBlock": "0.0.0.0/0"
 			}
 		},
-		"NetworkAclEntryOutPublicNodeEphemeralPorts": {
+    "NetworkAclEntryOutPublicNodeEphemeralPorts": {
 			"Type": "AWS::EC2::NetworkAclEntry",
 			"Properties": {
 				"NetworkAclId": {"Ref": "NetworkAclPublicNode"},
@@ -202,74 +238,8 @@
 				"CidrBlock": "0.0.0.0/0"
 			}
 		},
-		"NodejsInstance": {
-			"Type": "AWS::EC2::Instance",
-			"Metadata": {
-				"AWS::CloudFormation::Init": {
-					"config": {
-						"packages": {
-							"rpm": {
-								"nodejs": "ftp://195.220.108.108/linux/fedora-secondary/development/rawhide/Everything/aarch64/os/Packages/n/nodejs-6.10.0-1.fc27.aarch64.rpm"
-							},
-							"yum": {
-								"gcc-c++": [],
-								"make": [],
-								"git": [],
-								"nodejs-compat-symlinks": [],
-								"npm": []
-							}
-						}
-					}
-				}
-			},
-			"Properties": {
-				"ImageId": {"Fn::FindInMap": ["EC2RegionMap", {"Ref": "AWS::Region"}, "AmazonLinuxAMIHVMEBSBacked64bit"]},
-				"InstanceType": "t2.micro",
-				"KeyName": {"Ref": "KeyName"},
-				"NetworkInterfaces": [{
-					"AssociatePublicIpAddress": "true",
-					"DeleteOnTermination": "true",
-					"SubnetId": {"Ref": "SubnetPublicNode"},
-					"DeviceIndex": "0",
-					"GroupSet": [{"Ref": "SecurityGroup"}]
-				}],
-				"UserData": {"Fn::Base64": {"Fn::Join": ["", [
-					"#!/bin/bash\n",
-					"## Error reporting helper function\n",
-					"function error_exit\n",
-					"{\n",
-					"  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '", {"Ref": "WaitHandleNodejsInstance"}, "'\n",
-					"}\n",
-					"## Initialize CloudFormation bits\n",
-					"/opt/aws/bin/cfn-init -v -s ", {"Ref": "AWS::StackName"}, " -r NodejsInstance",
-					" --region ", {"Ref": "AWS::Region"}, " > /tmp/cfn-init.log 2>&1 || error_exit $(</tmp/cfn-init.log)\n",
-					"## Raise file descriptor limits\n",
-					"echo '* hard nofile 100000' | tee -a /etc/security/limits.conf\n",
-					"echo '* soft nofile 100000' | tee -a /etc/security/limits.conf\n",
-					"ulimit -n 100000\n",
-					"## CloudFormation signal that setup is complete\n",
-					"/opt/aws/bin/cfn-signal -e 0 -r \"NodejsInstance setup complete\" '", {"Ref": "WaitHandleNodejsInstance"}, "'\n"
-				]]}}
-			},
-			"DependsOn": "VPCGatewayAttachment"
-		},
-		"WaitHandleNodejsInstance" : {
-				"Type" : "AWS::CloudFormation::WaitConditionHandle",
-				"Properties" : {}
-		},
-		"WaitConditionNodejsInstance" : {
-			"Type" : "AWS::CloudFormation::WaitCondition",
-			"DependsOn" : "NodejsInstance",
-			"Properties" : {
-				"Handle" : { "Ref" : "WaitHandleNodejsInstance" },
-				"Timeout" : "300"
-			}
-		}
-	},
-	"Outputs": {
-		"InstanceName": {
-			"Value": {"Fn::GetAtt": ["NodejsInstance", "PublicDnsName"]},
-			"Description": "public DNS name of NodejsInstance"
-		}
-	}
+    
+  },
+  "Outputs": {
+  }
 }
